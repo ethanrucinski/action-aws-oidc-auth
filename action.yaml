@@ -1,0 +1,57 @@
+name: "Action AWS OIDC Auth"
+description: "Uses a multi-step process to enforce arbitrary claims on a GitHub OIDC token"
+inputs:
+    initial-role-to-assume:
+        description: "Initial role to assume with GitHub OIDC identity provider"
+        required: true
+    aws-region:
+        description: "Aws region in which to run commands"
+        required: false
+        default: "us-east-1"
+    lambda-function-name:
+        description: "Name of lambda function to invoke for custom claim validation"
+        required: true
+runs:
+    using: "composite"
+    steps:
+        - name: AWS OIDC Auth
+          uses: aws-actions/configure-aws-credentials@v1.6.1
+          with:
+              role-to-assume: ${{ inputs.initial-role-to-assume }}
+              aws-region: ${{ inputs.aws-region }}
+        - name: Get ID Token
+          id: get-token
+          uses: actions/github-script@v6
+          with:
+              script: |
+                  const token = await core.getIDToken('sts.amazonaws.com');
+                  const payload = {token: token};
+                  return JSON.stringify(payload);
+              result-encoding: string
+        - name: Invoke auth lambda
+          run: |
+              aws lambda invoke --function-name ${{ inputs.lambda-function-name }} \
+                --cli-binary-format raw-in-base64-out \
+                --payload '${{ steps.get-token.outputs.result }}' \
+                $RUNNER_TEMP/response.json
+        - name: Set auth outputs
+          uses: actions/github-script@v6
+          id: auth-outputs
+          with:
+              script: |
+                  const fs = require("fs");
+                  const creds = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/response.json"));
+                  core.setOutput("ACCESS_KEY_ID", creds.Credentials.AccessKeyId);
+                  core.setSecret(creds.Credentials.AccessKeyId);
+                  core.setOutput("SECRET_ACCESS_KEY", creds.Credentials.SecretAccessKey);
+                  core.setSecret(creds.Credentials.SecretAccessKey);
+                  core.setOutput("SESSION_TOKEN", creds.Credentials.SessionToken);
+                  core.setSecret(creds.Credentials.SessionToken);
+                  fs.unlinkSync(process.env.RUNNER_TEMP + "/response.json")
+        - name: AWS Auth with final role
+          uses: aws-actions/configure-aws-credentials@v1.6.1
+          with:
+              aws-access-key-id: ${{ steps.auth-outputs.outputs.ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ steps.auth-outputs.outputs.SECRET_ACCESS_KEY }}
+              aws-session-token: ${{ steps.auth-outputs.outputs.SESSION_TOKEN }}
+              aws-region: ${{ inputs.aws-region }}
