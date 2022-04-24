@@ -34,7 +34,6 @@ runs:
                 --cli-binary-format raw-in-base64-out \
                 --payload '${{ steps.get-token.outputs.result }}' \
                 $RUNNER_TEMP/response.json
-                cat $RUNNER_TEMP/response.json
           shell: bash
         - name: Set auth outputs
           uses: actions/github-script@v6
