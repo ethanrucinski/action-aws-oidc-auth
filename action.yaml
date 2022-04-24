@@ -15,7 +15,7 @@ runs:
     using: "composite"
     steps:
         - name: AWS OIDC Auth
-          uses: aws-actions/configure-aws-credentials@v1.6.1
+          uses: aws-actions/configure-aws-credentials@v1
           with:
               role-to-assume: ${{ inputs.initial-role-to-assume }}
               aws-region: ${{ inputs.aws-region }}
@@ -50,7 +50,7 @@ runs:
                   core.setSecret(creds.Credentials.SessionToken);
                   fs.unlinkSync(process.env.RUNNER_TEMP + "/response.json")
         - name: AWS Auth with final role
-          uses: aws-actions/configure-aws-credentials@v1.6.1
+          uses: aws-actions/configure-aws-credentials@v1
           with:
               aws-access-key-id: ${{ steps.auth-outputs.outputs.ACCESS_KEY_ID }}
               aws-secret-access-key: ${{ steps.auth-outputs.outputs.SECRET_ACCESS_KEY }}
