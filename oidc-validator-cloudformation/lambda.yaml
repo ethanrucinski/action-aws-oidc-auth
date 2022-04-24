@@ -1,0 +1,35 @@
+Parameters:
+    LambdaSourceS3Bucket:
+        Type: String
+    LambdaSourceS3Key:
+        Type: String
+
+Resources:
+    OidcValidatorFunction:
+        Type: AWS::Lambda::Function
+        Properties:
+            Code:
+                S3Bucket: !Ref LambdaSourceS3Bucket
+                S3Key: !Ref LambdaSourceS3Key
+            Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/github-oidc-lambda-function-role"
+            Environment:
+                Variables:
+                    GITHUB_ACTIONS_ROLE_ARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/github-actions-role"
+            FunctionName: github-oidc-auth
+            Handler: index.handler
+            Runtime: nodejs14.x
+    GithubOidcRolePolicy:
+        Type: AWS::IAM::Policy
+        Properties:
+            PolicyDocument:
+                Statement:
+                    - Action: lambda:InvokeFunction
+                      Effect: Allow
+                      Resource:
+                          Fn::GetAtt:
+                              - OidcValidatorFunction
+                              - Arn
+                Version: "2012-10-17"
+            PolicyName: GithubOidcRolePolicy
+            Roles:
+                - github-oidc-role

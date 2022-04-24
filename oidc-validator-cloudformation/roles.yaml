@@ -1,0 +1,61 @@
+Parameters:
+    SubjectMatch:
+        Type: String
+
+Resources:
+    GitHubOidcRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                    - Action: sts:AssumeRoleWithWebIdentity
+                      Condition:
+                          StringLike:
+                              token.actions.githubusercontent.com:sub: !Ref SubjectMatch
+                      Effect: Allow
+                      Principal:
+                          Federated: !Sub arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com
+                Version: "2012-10-17"
+            RoleName: github-oidc-role
+    LambdaFunctionRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                    - Action: sts:AssumeRole
+                      Effect: Allow
+                      Principal:
+                          Service: lambda.amazonaws.com
+                Version: "2012-10-17"
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+            RoleName: github-oidc-lambda-function-role
+    LambdaFunctionRoleDefaultPolicy:
+        Type: AWS::IAM::Policy
+        Properties:
+            PolicyDocument:
+                Statement:
+                    - Action: sts:assumeRole
+                      Effect: Allow
+                      Resource:
+                          Fn::GetAtt:
+                              - GitHubActionsRole
+                              - Arn
+                Version: "2012-10-17"
+            PolicyName: LambdaFunctionRoleDefaultPolicy
+            Roles:
+                - Ref: LambdaFunctionRole
+    GitHubActionsRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Statement:
+                    - Action: sts:AssumeRole
+                      Effect: Allow
+                      Principal:
+                          AWS:
+                              Fn::GetAtt:
+                                  - LambdaFunctionRole
+                                  - Arn
+                Version: "2012-10-17"
+            RoleName: github-actions-role

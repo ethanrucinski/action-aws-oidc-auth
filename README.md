@@ -4,7 +4,7 @@ This action is meant to be used in tandem with a custom lambda function to valid
 
 To solve this constraint, we introduce a lambda function, invoked by a role assumed using the regular AssumeRoleWithWebIdentity approach. The lambda function performs custom claims on our GitHub actions OIDC token, and AssumesRole into our destination role if we meet all of the claims.
 
-A sample implementation of this lambda function is available under [ethanrucinski/aws-github-oidc-auth](https://github.com/ethanrucinski/aws-github-oidc-auth).
+A sample implementation of this lambda function is available under [oidc-validator-lambda-source](./oidc-validator-lambda-source/). The CloudFormation to deploy this Lambda and the necessary roles can be found under [oidc-validator-cloudformation](./oidc-validator-cloudformation/).
 
 ## Usage
 
